@@ -328,7 +328,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
         }
       })
 
-      const response = await fetch('http://localhost:3008/v1/messages', {
+      const response = await fetch(`${process.env.DOMAIN}/v1/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
