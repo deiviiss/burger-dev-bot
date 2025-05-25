@@ -327,7 +327,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
           status: 'IN_PROGRESS'
         }
       })
-
+      console.log(process.env.DOMAIN)
       const response = await fetch(`${process.env.DOMAIN}/v1/messages`, {
         method: 'POST',
         headers: {
