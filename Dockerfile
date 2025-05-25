@@ -29,7 +29,6 @@ EXPOSE $PORT
 COPY --from=builder /app/assets ./assets
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/*.json /app/*-lock.yaml ./
-COPY --from=builder /app/node_modules ./node_modules
 
 RUN corepack enable && corepack prepare pnpm@latest --activate 
 ENV PNPM_HOME=/usr/local/bin
