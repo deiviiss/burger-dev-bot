@@ -23,6 +23,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.5.0
     devDependencies:
       '@types/node':
         specifier: ^20.11.30
@@ -33,9 +36,6 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^7.4.0
         version: 7.18.0(eslint@8.57.1)(typescript@5.8.3)
-      dotenv:
-        specifier: ^16.5.0
-        version: 16.5.0
       eslint:
         specifier: ^8.52.0
         version: 8.57.1
