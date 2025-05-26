@@ -1,6 +1,6 @@
 'use server'
 
-import { Product, Promotion } from "@/interfaces/types"
+import { Product, Promotion } from "@/utils/types"
 
 export async function getMenu(): Promise<{ menu: string; promotions: string }> {
   try {

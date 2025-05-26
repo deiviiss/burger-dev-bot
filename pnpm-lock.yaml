@@ -26,6 +26,9 @@ importers:
       dotenv:
         specifier: ^16.4.2
         version: 16.5.0
+      zod:
+        specifier: ^3.25.29
+        version: 3.25.29
     devDependencies:
       '@types/node':
         specifier: ^20.11.30
@@ -1892,6 +1895,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@3.25.29:
+    resolution: {integrity: sha512-xetH/muIYuAyN7YJGKh99jkBQq/XbGEyTkv7JC4YYsWppHmfoU1MDoQa441WD1QMDaeCaEBO0e0hl1iSmluNQQ==}
+
 snapshots:
 
   '@adiwajshing/keyed-db@0.2.4': {}
@@ -3748,3 +3754,5 @@ snapshots:
   ws@8.18.2: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@3.25.29: {}

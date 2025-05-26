@@ -3,6 +3,11 @@ import { clearHistory, handleHistory, getHistoryParse } from "@/utils/handleHist
 import { addKeyword, EVENTS } from "@builderbot/bot";
 import { BotState } from "@builderbot/bot/dist/types";
 import prisma from "@/lib/prisma";
+import { create } from "domain";
+import { createUpdateUser } from "@/http/users/create-update-user";
+import { get } from "http";
+import { getUserByPhoneNumber } from "@/http/users/get-user-by-phone-number";
+import { User } from "@/utils/types";
 
 const findCodePrompt = (history: string) => {
   const PROMPT = `
@@ -168,7 +173,6 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
       select: {
         id: true,
         shortId: true,
-        phoneNumber: true,
         totalPrice: true,
         status: true,
         createdAt: true,
@@ -223,7 +227,6 @@ https://menu-digital-indol.vercel.app 😊`)
       return endFlow()
     }
 
-    // const order = await getAIResponse(getOrder(history))
     const order = {
       ...orderDB,
       items: orderDB.items.map(item => ({
@@ -310,25 +313,37 @@ const flowAsks = addKeyword(EVENTS.ACTION)
 
     await handleHistory({ content: confirmation, role: 'user' }, state as BotState)
     const history = getHistoryParse(state as BotState)
-    console.log('Historial parseado in confirmation:', history)
+
     const result = await getAIResponse(validateConfirmation(history))
 
     if (result.trim().toUpperCase() === 'CONFIRMADO') {
+      let user
+      // create a new user if it doesn't exist
+      user = await getUserByPhoneNumber(ctx.from)
 
+      if (!user) {
+        user = await createUpdateUser({
+          name: state.get('name'),
+          phoneNumber: ctx.from
+        })
+      }
+
+      // Update the order in the database
       await prisma.order.update({
         where: {
           shortId: state.get('order').shortId
         },
         data: {
-          phoneNumber: ctx.from,
-          name: state.get('name'),
+          userId: user.id,
           address: state.get('address'),
           comment: state.get('paymentMethod'),
           status: 'IN_PROGRESS'
         }
       })
-      console.log(process.env.DOMAIN)
-      const response = await fetch(`${process.env.DOMAIN}/v1/messages`, {
+
+      // Send message to the restaurant
+      console.log('Enviando mensaje a la cocina...')
+      await fetch(`${process.env.DOMAIN}/v1/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -338,7 +353,6 @@ const flowAsks = addKeyword(EVENTS.ACTION)
           message: `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`
         })
       })
-      console.log('Response from webhook:', response.status, await response.text())
 
       await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊')
       await flowDynamic('Tiempo estimado de entrega: 35 minutos. ⏳')
@@ -363,7 +377,8 @@ https://menu-digita-indol.vercel.app 😊`)
 const flowModify = addKeyword('MODIFICAR')
   .addAction(async (_, { state, gotoFlow, endFlow, flowDynamic }) => {
     const order = await state.get('order')
-    console.log('Pedido in modify:', order)
+
+    // If the order is not found, end the flow
     if (!order) {
       await flowDynamic(`Por favor realiza tu pedido en nuestro menú digital para tener un código de verificación. Aquí está el enlace:   
 

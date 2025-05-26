@@ -5,7 +5,7 @@ import { flowConfirm } from "@/flows/confirm.flow"
 import { flowTalk } from "@/flows/talk.flow"
 import { flowOrder } from "@/flows/order.flow"
 import { getCurrentFlow } from "@/utils/handleCurrentFlow"
-import { FlowValue } from "@/interfaces/types"
+import { FlowValue } from "@/utils/types"
 
 type CreatePromptParams = {
   history: string

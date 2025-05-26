@@ -1,4 +1,4 @@
-import { FlowValue } from "@/interfaces/types"
+import { FlowValue } from "@/utils/types"
 import { BotState } from "@builderbot/bot/dist/types"
 
 const handleCurrentFlowState = async (flow: FlowValue, _state: BotState) => {
