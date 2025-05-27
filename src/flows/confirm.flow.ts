@@ -281,7 +281,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
 
     await flowDynamic('Correcto, ¿Cuál es tu forma de pago? 💳'), {
       delay: 1500
-    }
+    })
     await flowDynamic('Aceptamos transferencia bancaria, efectivo y otros métodos de pago. Por favor, indícanos cuál prefieres. 😊', {
       delay: 1500
     })
@@ -387,7 +387,9 @@ Te dejo sus datos:
       await flowDynamic(`📌 Este pedido fue una simulación.
 
 Así funcionaría con tus propios clientes si tienes tu propio menú digital. 😊
-        `)
+        `{
+      delay: 2000
+    })
 
       if (state.get('newUser')) {
         await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`)
