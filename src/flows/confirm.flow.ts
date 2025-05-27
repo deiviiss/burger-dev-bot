@@ -384,9 +384,16 @@ Te dejo sus datos:
       await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊')
       await flowDynamic('Tiempo estimado de entrega: 35 minutos. ⏳')
 
+      await flowDynamic(`📌 Este pedido fue una simulación.
+
+Así funcionaría con tus propios clientes si tienes tu propio menú digital. 😊
+        `)
+
       if (state.get('newUser')) {
-        await flowDynamic(`¡Felicidades! Has completado la demostración exitosamente. Si estás interesado en nuestro producto, no dudes en contactarnos para más información. 😊`)
-        await flowDynamic(`Como premio por haber completado el demo, aquí tienes tu código: H0LQ18 🎁 Este código te da un descuento de $199 en la compra de un menú digital con nosotros y es válido hasta el 01 de junio de 2025.`)
+        await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`)
+        await flowDynamic(`Como agradecimiento, aquí tienes tu código de descuento: *H0LA18* 🎁`)
+        await flowDynamic(`Este código te da *$199 de descuento* en la compra de tu propio menú digital. Es válido hasta el *5 de junio de 2025*.`)
+        await flowDynamic(`Si te interesa activarlo o tienes dudas, *mándame un mensaje* y con gusto te ayudo. ¡Gracias por probar la demo! 😊`)
       }
 
       await clearHistory(state as BotState)
