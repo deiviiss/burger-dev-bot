@@ -162,82 +162,91 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { state, flowDynamic, endFlow }) => {
     console.log('===== FLOW CONFIRM =====')
     const history = getHistoryParse(state as BotState)
-    const verificationCode = await getAIResponse(findCodePrompt(history))
-    const totalOrder = await getAIResponse(getTotalOrderPrompt(history))
+    try {
+      const verificationCode = await getAIResponse(findCodePrompt(history))
+      const totalOrder = await getAIResponse(getTotalOrderPrompt(history))
 
-    const orderDB = await prisma.order.findFirst({
-      where: {
-        shortId: verificationCode.toString().trim(),
-        status: 'PENDING',
-      },
-      select: {
-        id: true,
-        shortId: true,
-        totalPrice: true,
-        status: true,
-        createdAt: true,
-        address: true,
-        comment: true,
-        items: {
-          select: {
-            quantity: true,
-            unitPrice: true,
-            product: {
-              select: {
-                name: true,
-                price: true,
+      const orderDB = await prisma.order.findFirst({
+        where: {
+          shortId: verificationCode.toString().trim(),
+          status: 'PENDING',
+        },
+        select: {
+          id: true,
+          shortId: true,
+          totalPrice: true,
+          status: true,
+          createdAt: true,
+          address: true,
+          comment: true,
+          items: {
+            select: {
+              quantity: true,
+              unitPrice: true,
+              product: {
+                select: {
+                  name: true,
+                  price: true,
+                },
               },
-            },
-            promotion: {
-              select: {
-                name: true,
-                promoPrice: true,
+              promotion: {
+                select: {
+                  name: true,
+                  promoPrice: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    console.log('verificationCode:', verificationCode.toString().trim())
 
-    if (verificationCode.trim().toLowerCase() === 'no-code') {
-      await flowDynamic(`Por favor realiza tu pedido en nuestro menú digital para tener un código de verificación. Aquí está el enlace:   
+      console.log('verificationCode:', verificationCode.toString().trim())
 
-https://menu-digital-indol.vercel.app 😊`)
-
-      await clearHistory(state as BotState)
-      return endFlow()
-    }
-
-    if (verificationCode.trim() !== orderDB?.shortId) {
-      await flowDynamic(`Parece que el código ha expirado. Por favor, realiza tu pedido en nuestro menú digital para tener un código de verificación actualizado. Aquí está el enlace:
+      if (verificationCode.trim().toLowerCase() === 'no-code') {
+        await flowDynamic(`Por favor realiza tu pedido en nuestro menú digital para tener un código de verificación. Aquí está el enlace:   
 
 https://menu-digital-indol.vercel.app 😊`)
 
-      await clearHistory(state as BotState)
-      return endFlow()
-    }
+        await clearHistory(state as BotState)
+        return endFlow()
+      }
 
-    if (Number(totalOrder.trim()) !== orderDB?.totalPrice) {
-      await flowDynamic(`Parece que tu pedido ha cambiado. Por favor, revisa tu pedido en nuestro menú digital para tener un código de verificación actualizado. Aquí está el enlace:
+      if (verificationCode.trim() !== orderDB?.shortId) {
+        await flowDynamic(`Parece que el código ha expirado. Por favor, realiza tu pedido en nuestro menú digital para tener un código de verificación actualizado. Aquí está el enlace:
 
 https://menu-digital-indol.vercel.app 😊`)
+
+        await clearHistory(state as BotState)
+        return endFlow()
+      }
+
+      if (Number(totalOrder.trim()) !== orderDB?.totalPrice) {
+        await flowDynamic(`Parece que tu pedido ha cambiado. Por favor, revisa tu pedido en nuestro menú digital para tener un código de verificación actualizado. Aquí está el enlace:
+
+https://menu-digital-indol.vercel.app 😊`)
+        await clearHistory(state as BotState)
+        return endFlow()
+      }
+
+      // Format the order to send it to the AI
+      const order = {
+        ...orderDB,
+        items: orderDB.items.map(item => ({
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          productName: item.product?.name || null,
+          promotionName: item.promotion?.name || null,
+        }))
+      };
+
+      await state.update({ order: order })
+    } catch (error) {
+      console.error('Error en el flujo de confirmación:', error)
+      await flowDynamic(`Ocurrió un error al procesar tu pedido, por favor intenta de nuevo más tarde. 😊`)
       await clearHistory(state as BotState)
       return endFlow()
     }
-
-    const order = {
-      ...orderDB,
-      items: orderDB.items.map(item => ({
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        productName: item.product?.name || null,
-        promotionName: item.promotion?.name || null,
-      }))
-    };
-
-    await state.update({ order: order })
   })
   .addAction(async (_, { flowDynamic, gotoFlow }) => {
     await flowDynamic('Perfecto, ahora solo necesito algunos datos antes de enviarlo 😊')
@@ -336,6 +345,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
           }
         }
         user = newUser.user
+        await state.update({ newUser: user.id })
       }
 
       // Update the order in the database
@@ -360,12 +370,25 @@ const flowAsks = addKeyword(EVENTS.ACTION)
         },
         body: JSON.stringify({
           number: '+5219811250049',
-          message: `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`
+          message: `📦 Un cliente ha completado la demostración posiblemente este interesado.
+
+Te dejo sus datos:
+          
+- Nombre: ${state.get('name')}
+- Teléfono: ${ctx.from}
+          `
+          // message: `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`
         })
       })
 
       await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊')
       await flowDynamic('Tiempo estimado de entrega: 35 minutos. ⏳')
+
+      if (state.get('newUser')) {
+        await flowDynamic(`¡Felicidades! Has completado la demostración exitosamente. Si estás interesado en nuestro producto, no dudes en contactarnos para más información. 😊`)
+        await flowDynamic(`Como premio por haber completado el demo, aquí tienes tu código: H0LQ18 🎁 Este código te da un descuento de $199 en la compra de un menú digital con nosotros y es válido hasta el 01 de junio de 2025.`)
+      }
+
       await clearHistory(state as BotState)
       return endFlow()
     }
