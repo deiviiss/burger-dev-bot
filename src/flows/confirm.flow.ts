@@ -394,6 +394,12 @@ Así funcionaría con tus propios clientes si tienes tu propio menú digital. �
           delay: 3000
         })
 
+      await flowDynamic(`🍔🍕🥗 Si te animas a tener tu propio menú digital, escríbeme al *9811250049* y con gusto te ayudo. 😊
+        `,
+        {
+          delay: 2500
+        })
+
       if (state.get('newUser')) {
         await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`)
         await flowDynamic(`Como agradecimiento, aquí tienes tu código de descuento: *H0LA18* 🎁`)
