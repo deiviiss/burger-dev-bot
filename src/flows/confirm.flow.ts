@@ -271,21 +271,20 @@ const flowAsks = addKeyword(EVENTS.ACTION)
     await flowDynamic('Por favor, incluye la calle, número, colonia y cualquier referencia que consideres importante. 🏠', {
       delay: 1500
     })
-  )
+  })
   .addAction({ capture: true }, async (ctx, { state, flowDynamic }) => {
     const address = ctx.body
     await state.update({ address: address })
 
     // await handleHistory({ content: `Mi domicilio es ${address}`, role: 'user' }, state as BotState)
 
-    await flowDynamic('Correcto, ¿Cuál es tu forma de pago? 💳'), {
+    await flowDynamic('Correcto, ¿Cuál es tu forma de pago? 💳', {
       delay: 1500
     })
     await flowDynamic('Aceptamos transferencia bancaria, efectivo y otros métodos de pago. Por favor, indícanos cuál prefieres. 😊', {
       delay: 1500
     })
-  }
-  )
+  })
   .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack }) => {
     const paymentMethod = ctx.body
     const paymentMethodFormat = await getAIResponse(getPaymentMethod(paymentMethod))
@@ -380,15 +379,20 @@ Te dejo sus datos:
         })
       })
 
-      await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊')
-      await flowDynamic('Tiempo estimado de entrega: 35 minutos. ⏳')
+      await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊', {
+        delay: 1500
+      })
+      await flowDynamic('Tiempo estimado de entrega: 35 minutos. ⏳', {
+        delay: 1500
+      })
 
       await flowDynamic(`📌 Este pedido fue una simulación.
 
 Así funcionaría con tus propios clientes si tienes tu propio menú digital. 😊
-        `{
-      delay: 2000
-    })
+        `,
+        {
+          delay: 3000
+        })
 
       if (state.get('newUser')) {
         await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`)
