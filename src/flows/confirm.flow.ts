@@ -271,7 +271,6 @@ const flowAsks = addKeyword(EVENTS.ACTION)
     await flowDynamic('Por favor, incluye la calle, número, colonia y cualquier referencia que consideres importante. 🏠', {
       delay: 1500
     })
-  }
   )
   .addAction({ capture: true }, async (ctx, { state, flowDynamic }) => {
     const address = ctx.body
