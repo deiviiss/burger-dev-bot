@@ -318,14 +318,24 @@ const flowAsks = addKeyword(EVENTS.ACTION)
 
     if (result.trim().toUpperCase() === 'CONFIRMADO') {
       let user
+      //! Create or update the user in the database could be a utility function
       // create a new user if it doesn't exist
       user = await getUserByPhoneNumber(ctx.from)
 
       if (!user) {
-        user = await createUpdateUser({
+        const newUser = await createUpdateUser({
           name: state.get('name'),
           phoneNumber: ctx.from
         })
+
+        if (!newUser.ok) {
+          {
+            await flowDynamic(`Ocurrió un error al crear tu usuario, por favor intenta de nuevo más tarde. 😊`)
+            await clearHistory(state as BotState)
+            return endFlow()
+          }
+        }
+        user = newUser.user
       }
 
       // Update the order in the database
