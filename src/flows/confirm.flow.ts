@@ -501,6 +501,8 @@ Así funcionaría con tus propios clientes si tienes tu propio menú digital. �
           delay: 2500
         })
 
+      await flowDynamic(`Hasta luego 👋`)
+
       if (state.get('newUser')) {
         await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`)
         await flowDynamic(`Como agradecimiento, aquí tienes tu código de descuento: *H0LA18* 🎁`)
@@ -605,7 +607,7 @@ https://burgerdev-demo.vercel.app 😊`)
 // It asks how much money the customer will pay with in order to calculate the change.
 const flowCashSelect = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic }) => {
-    await flowDynamic('¿Cuanto pagas? 💰')
+    await flowDynamic('¿Con cuánto pagas? 💰')
   })
   .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack, gotoFlow }) => {
     const amount = ctx.body

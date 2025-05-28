@@ -85,6 +85,7 @@ https://burgerdev-demo.vercel.app 🍔📱
   - Inventar productos, recetas, categorías o precios.
   - Repetir promociones o productos sin que el cliente lo pida.
   - Levantar pedidos. Solo sugiere el enlace.
+  - Poner el enlace entre []
   
   📋 Menú (usa solo esta información para responder):
   ${menu}
