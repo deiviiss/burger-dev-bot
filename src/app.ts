@@ -1,4 +1,4 @@
-import { createBot } from '@builderbot/bot'
+import { createBot, MemoryDB } from '@builderbot/bot'
 import { config } from "@/config"
 import { JsonFileDB as Database } from '@builderbot/database-json'
 import { baileysProvider } from '@/provider'
@@ -8,7 +8,7 @@ const main = async () => {
   const { handleCtx, httpServer } = await createBot({
     flow: flows,
     provider: baileysProvider,
-    database: new Database({ filename: 'db.json' })
+    database: new MemoryDB()
   })
 
   baileysProvider.server.post(
