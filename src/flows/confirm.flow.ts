@@ -3,11 +3,9 @@ import { clearHistory, handleHistory, getHistoryParse } from "@/utils/handleHist
 import { addKeyword, EVENTS } from "@builderbot/bot";
 import { BotState } from "@builderbot/bot/dist/types";
 import prisma from "@/lib/prisma";
-import { create } from "domain";
 import { createUpdateUser } from "@/http/users/create-update-user";
-import { get } from "http";
 import { getUserByPhoneNumber } from "@/http/users/get-user-by-phone-number";
-import { User } from "@/utils/types";
+import { stat } from "fs";
 
 const findCodePrompt = (history: string) => {
   const PROMPT = `
@@ -56,7 +54,7 @@ const getTotalOrderPrompt = (history: string) => {
   return PROMPT
 }
 
-const getPaymentMethod = (paymentMethod: string) => {
+const getPaymentMethod = (paymentMethod: string): string => {
   const PROMPT = `
   El cliente ha indicado que su forma de pago es ${paymentMethod}. 
   Responde solo con la forma de pago, sin más información.
@@ -66,12 +64,16 @@ De acuerdo a las opciones de pago que aceptamos, las formas de pago válidas son
   1- Transferencia Bancaria
   2- Efectivo
   3- Tarjeta de Crédito/Débito
-  4- Otro método de pago
+
+  Si escribe solo tarjeta significa que es Tarjeta tu respuesta
+
   Si el cliente menciona una forma de pago que no está en esta lista, responde "no-payment".
   Responde solo con la forma de pago, sin más información.
 
-  Ejemplo de respuestas:
-  Transferencia Bancaria  
+  Ejemplo de las únicas respuestas que puedes dar (no des otras):
+  Transferencia Bancaria
+  Tarjeta
+  Efectivo
   no-payment
   `
   return PROMPT
@@ -82,12 +84,14 @@ const confirmOrderPrompt = ({
   name,
   address,
   paymentMethod,
-  order
+  order,
+  amountCash
 }: {
   history: string;
   name: string;
   address: string;
   paymentMethod: string;
+  amountCash: string;
   order: string;
 }) => {
   const PROMPT = `
@@ -107,6 +111,8 @@ ${history}
 Nombre del cliente: ${name}
 Domicilio de entrega: ${address}
 Forma de pago: ${paymentMethod}
+Paga con: ${amountCash} //Esto solo va si el pago es en efectivo
+--- FIN DEL PEDIDO ---
 
 Después, responde con un resumen amable del pedido con nombre, dirección, método de pago y pregunta si está todo bien o desea modificar algo.
 No saludes al cliente, solo responde con el resumen del pedido.
@@ -157,6 +163,7 @@ Respuesta ideal: (CONFIRMADO|MODIFICAR)
 }
 
 // FLOWS
+
 // This flow is used to confirm the order and get the verification code
 const flowConfirm = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { state, flowDynamic, endFlow }) => {
@@ -164,7 +171,29 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
     const history = getHistoryParse(state as BotState)
     try {
       const verificationCode = await getAIResponse(findCodePrompt(history))
+      console.log('verificationCode:', verificationCode.toString().trim())
       const totalOrder = await getAIResponse(getTotalOrderPrompt(history))
+
+      if (!verificationCode || verificationCode.trim() === '') {
+        await flowDynamic(`No pudimos encontrar un código de verificación válido. Por favor, realiza tu pedido nuevamente desde el menú digital. 😊`)
+        await clearHistory(state as BotState)
+        return endFlow()
+      }
+
+      if (verificationCode.trim().toLowerCase() === 'no-code') {
+        await flowDynamic(`Por favor realiza tu pedido en nuestro menú digital para tener un código de verificación. Aquí está el enlace:   
+
+https://menu-digital-indol.vercel.app 😊`)
+
+        await clearHistory(state as BotState)
+        return endFlow()
+      }
+
+      if (!totalOrder || isNaN(Number(totalOrder.trim()))) {
+        await flowDynamic(`No pudimos obtener el total de tu pedido. Por favor, realiza tu pedido nuevamente desde el menú digital. 😊`)
+        await clearHistory(state as BotState)
+        return endFlow()
+      }
 
       const orderDB = await prisma.order.findFirst({
         where: {
@@ -200,14 +229,10 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
         },
       });
 
-
-      console.log('verificationCode:', verificationCode.toString().trim())
-
-      if (verificationCode.trim().toLowerCase() === 'no-code') {
-        await flowDynamic(`Por favor realiza tu pedido en nuestro menú digital para tener un código de verificación. Aquí está el enlace:   
-
-https://menu-digital-indol.vercel.app 😊`)
-
+      if (!orderDB) {
+        await flowDynamic(`No encontramos tu pedido. Por favor, realiza uno nuevo en nuestro menú digital:
+          
+https://burgerdev-demo.vercel.app 😊`)
         await clearHistory(state as BotState)
         return endFlow()
       }
@@ -251,6 +276,11 @@ https://menu-digital-indol.vercel.app 😊`)
   .addAction(async (_, { flowDynamic, gotoFlow }) => {
     await flowDynamic('Perfecto, ahora solo necesito algunos datos antes de enviarlo 😊')
 
+    await flowDynamic('Solo serán 3 preguntas rápidas para completar tu pedido 📝', {
+      delay: 1000
+    })
+
+
     return gotoFlow(flowAsks)
   })
 
@@ -260,42 +290,100 @@ const flowAsks = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic }) => {
     await flowDynamic('¿Quién recibe?')
   })
-  .addAction({ capture: true }, async (ctx, { state, flowDynamic }) => {
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack }) => {
     const name = ctx.body
-    await state.update({ name: name })
 
-    // await handleHistory({ content: `Mi nombre es ${name}`, role: 'user' }, state as BotState)
+    if (name.includes('_event_')) {
+      await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`), {
+        delay: 1000
+      };
+      await flowDynamic(`Por favor, escribe tu nombre con letras. ✍️`, {
+        delay: 1000
+      });
+      return fallBack();
+    }
+
+    // normalize name
+    await state.update({ name: name.trim().replace(/\b\w/g, c => c.toUpperCase()) })
+
     await flowDynamic(`Gracias, ¿Cuál es el domicilio de entrega?`, {
       delay: 1500
     })
     await flowDynamic('Por favor, incluye la calle, número, colonia y cualquier referencia que consideres importante. 🏠', {
-      delay: 1500
+      delay: 1000
     })
   })
-  .addAction({ capture: true }, async (ctx, { state, flowDynamic }) => {
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack }) => {
     const address = ctx.body
-    await state.update({ address: address })
 
-    // await handleHistory({ content: `Mi domicilio es ${address}`, role: 'user' }, state as BotState)
+    if (address.includes('_event_')) {
+      await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`, {
+        delay: 1000
+      });
+
+      await flowDynamic(`Por favor, escribe tu dirección con letras. ✍️`, {
+        delay: 1000
+      });
+      await flowDynamic('Incluye la calle, número, colonia y cualquier referencia que consideres importante. 🏠', {
+        delay: 1000
+      })
+      return fallBack();
+    }
+
+    await state.update({ address: address })
 
     await flowDynamic('Correcto, ¿Cuál es tu forma de pago? 💳', {
       delay: 1500
     })
-    await flowDynamic('Aceptamos transferencia bancaria, efectivo y otros métodos de pago. Por favor, indícanos cuál prefieres. 😊', {
-      delay: 1500
+    await flowDynamic('Aceptamos transferencia bancaria, efectivo y tarjetas de débito/crédito. Por favor, indícanos cuál prefieres. 😊', {
+      delay: 1000
     })
   })
-  .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack }) => {
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack, gotoFlow }) => {
     const paymentMethod = ctx.body
-    const paymentMethodFormat = await getAIResponse(getPaymentMethod(paymentMethod))
-    await state.update({ paymentMethod: paymentMethodFormat })
 
-    if (paymentMethodFormat.trim().toLowerCase() === 'no-payment') {
-      await flowDynamic(`Opción no reconocida. Por favor, escríbeme el número o nombre de la opción que prefieras. 😊`)
-      return fallBack('1- Transferencia Bancaria\n2- Efectivo\n3- Tarjeta de Crédito/Débito\n4- Otro método de pago')
+    if (paymentMethod.includes('_event_')) {
+      await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`), {
+        delay: 1000
+      };
+      await flowDynamic(`Por favor, escribe escríbeme el número o nombre de la opción que prefieras. 😊`, {
+        delay: 1000
+      });
+      await flowDynamic('1- Transferencia Bancaria\n2- Efectivo\n3- Tarjeta de Crédito/Débito', {
+        delay: 1000
+      })
+      return fallBack();
     }
 
-    // await handleHistory({ content: `Mi forma de pago es ${paymentMethod}`, role: 'user' }, state as BotState)
+    const paymentMethodFormat = await getAIResponse(getPaymentMethod(paymentMethod))
+    await state.update({ paymentMethod: paymentMethodFormat })
+    console.log('paymentMethod:', paymentMethodFormat)
+    if (paymentMethodFormat.trim().toLowerCase() === 'no-payment') {
+      await flowDynamic(`Opción no reconocida. Por favor, escríbeme el número o nombre de la opción que prefieras. 😊`)
+      return fallBack('1- Transferencia Bancaria\n2- Efectivo\n3- Tarjeta de Crédito/Débito')
+    }
+
+    if (paymentMethodFormat.includes('Efectivo')) {
+      return gotoFlow(flowCashSelect)
+    }
+
+    if (paymentMethodFormat.includes('Transferencia')) {
+      return gotoFlow(flowTransferSelect)
+    }
+
+    if (paymentMethodFormat.includes('Tarjeta')) {
+      await flowDynamic('Perfecto, nuestro repartido lleva consigo su terminal bancaria')
+      return gotoFlow(flowConfirmOrder)
+    }
+  }
+  )
+
+/**
+ * This flow handles the user's payment method selection and routes to the appropriate flow
+ * depending on the selected payment method (Cash, Bank Transfer, or Card).
+ */
+const flowConfirmOrder = addKeyword(EVENTS.ACTION)
+  .addAction(async (_, { flowDynamic, state }) => {
     const history = getHistoryParse(state as BotState)
     console.log('Historial parseado in Asks:', history)
     console.log('============ end Historial parseado in Asks =================')
@@ -303,20 +391,33 @@ const flowAsks = addKeyword(EVENTS.ACTION)
     console.log('name:', name)
     const address = state.get('address')
     console.log('address:', address)
+    const paymentMethod = state.get('paymentMethod')
+    console.log('paymentMethod:', paymentMethod)
     const order = state.get('order')
     console.log('order:', order)
+    const amountCash = state.get('amountCash')
 
     const result = await getAIResponse(confirmOrderPrompt({
-      history, name, address, paymentMethod: paymentMethodFormat, order
+      history, name, address, paymentMethod, order, amountCash
     }))
     await handleHistory({ content: result, role: 'assistant' }, state as BotState)
     console.log('Resultado:', result)
 
     await flowDynamic(result)
-  }
-  )
-  .addAction({ capture: true }, async (ctx, { state, flowDynamic, endFlow }) => {
+  })
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, endFlow, fallBack }) => {
     const confirmation = ctx.body
+
+    if (confirmation.includes('_event_')) {
+      await flowDynamic(`No puedo procesar imágenes, audios, archivos o mensajes especiales en este paso. 🙈`, {
+        delay: 1000
+      });
+      await flowDynamic(`Por favor, responde si todo está correcto o si deseas modificar algo. 😊`, {
+        delay: 1000
+      });
+
+      return fallBack()
+    }
 
     await handleHistory({ content: confirmation, role: 'user' }, state as BotState)
     const history = getHistoryParse(state as BotState)
@@ -442,4 +543,98 @@ https://menu-digital-indol.vercel.app 😊`)
     return gotoFlow(flowAsks)
   })
 
-export { flowConfirm, flowAsks, flowModify }
+// This flow is triggered when the user selects "Bank Transfer" as the payment method.
+// It provides the bank account details and asks the user to send the payment receipt.
+const flowTransferSelect = addKeyword(EVENTS.ACTION)
+  .addAction(async (_, { flowDynamic }) => {
+    await flowDynamic(`¡Perfecto! Aquí tienes los datos bancarios para realizar tu transferencia:
+
+      Banco: BBVA
+      Cuenta: 0123456789
+      CLABE: 012345678901234567
+      Titular: Burger Bot Demo
+  
+      Por favor, realiza la transferencia y envíame el comprobante. 😊`)
+  })
+  .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow, endFlow, state }) => {
+    const confirmation = ctx.body
+
+    const isImage = !confirmation.includes('_event_location_') || !confirmation.includes('_event_voice_') || !confirmation.includes('_event_document')
+
+    if (!isImage) {
+      await flowDynamic(`No puedo procesar ubicaciones, audios, archivos o mensajes especiales en este paso. 🙈`, {
+        delay: 1000
+      });
+      await flowDynamic(`Por favor, responde con el comprobante si has completado la transferencia o si deseas cancelar el pedido escribe "Cancelar". 😊`, {
+        delay: 1000
+      });
+
+      return fallBack()
+    }
+
+    if (confirmation.includes('_event_media_')) {
+      //! Procesar image con AI
+      await state.update({ paymenMethod: 'Transferencia Bancaria' })
+      await flowDynamic('Validando...', {
+        delay: 1500
+      })
+      await flowDynamic('¡Correcto!', {
+        delay: 1500
+      })
+      return gotoFlow(flowConfirmOrder)
+    }
+
+    if (confirmation.trim().toLowerCase() !== 'cancelar') {
+      await flowDynamic(`Por favor, responde con el comprobante si has completado la transferencia o si deseas cancelar el pedido escribe "Cancelar". 😊`, {
+        delay: 1000
+      });
+      return fallBack()
+    }
+
+    if (confirmation.trim().toLowerCase() === 'cancelar') {
+      // TODO: update model order
+      await flowDynamic('Hasta luego!')
+      await flowDynamic(`Si deseas hacer un nuevo pedido, puedes volver a nuestro menú digital en cualquier momento: 
+        
+https://burgerdev-demo.vercel.app 😊`)
+      return endFlow()
+    }
+  })
+
+// This flow is triggered when the user selects "Cash" as the payment method.
+// It asks how much money the customer will pay with in order to calculate the change.
+const flowCashSelect = addKeyword(EVENTS.ACTION)
+  .addAction(async (_, { flowDynamic }) => {
+    await flowDynamic('¿Cuanto pagas? 💰')
+  })
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack, gotoFlow }) => {
+    const amount = ctx.body
+    console.log('amount', amount)
+    if (amount.includes('_events_')) {
+      await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`, {
+        delay: 1000
+      });
+
+      await flowDynamic(`Por favor, escribe con cuanto pagas en números. ✍️`, {
+        delay: 1000
+      });
+
+      return fallBack()
+    }
+
+    // Parse and validate amount as a number
+    const parsedAmount = parseFloat(amount.replace(/[^0-9.,]/g, '').replace(',', '.'));
+
+    if (isNaN(parsedAmount)) {
+      await flowDynamic(`Por favor, escribe con cuanto pagas en números. Ejemplo: 200 o 200.00 ✍️`, {
+        delay: 1000
+      });
+      return fallBack();
+    }
+
+    await state.update({ amountCash: parsedAmount });
+
+    return gotoFlow(flowConfirmOrder)
+  })
+
+export { flowConfirm, flowAsks, flowModify, flowConfirmOrder, flowCashSelect, flowTransferSelect }
