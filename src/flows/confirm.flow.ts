@@ -3,9 +3,8 @@ import { clearHistory, handleHistory, getHistoryParse } from "@/utils/handleHist
 import { addKeyword, EVENTS } from "@builderbot/bot";
 import { BotState } from "@builderbot/bot/dist/types";
 import prisma from "@/lib/prisma";
-import { createUpdateUser } from "@/http/users/create-update-user";
-import { getUserByPhoneNumber } from "@/http/users/get-user-by-phone-number";
-import { stat } from "fs";
+import { createUpdateUser } from "@/actions/users/create-update-user";
+import { getUserByPhoneNumber } from "@/actions/users/get-user-by-phone-number";
 
 const findCodePrompt = (history: string) => {
   const PROMPT = `

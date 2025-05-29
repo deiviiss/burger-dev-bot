@@ -3,7 +3,7 @@ import { getAIResponse } from "@/services/ai-services";
 import { getHistoryParse, handleHistory } from "@/utils/handleHistory";
 import { addKeyword, EVENTS } from "@builderbot/bot";
 import { BotState } from "@builderbot/bot/dist/types";
-import { getMenu } from "@/http/products/get-menu";
+import { getMenu } from "@/actions/products/get-menu";
 import { handleCurrentFlowState } from "@/utils/handleCurrentFlow";
 
 const createPromptTalk = async (history: string) => {

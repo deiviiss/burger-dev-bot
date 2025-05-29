@@ -1,7 +1,5 @@
 'use server'
 
-import { Product, Promotion } from "@/utils/types"
-
 export async function getMenu(): Promise<{ menu: string; promotions: string }> {
   try {
     const menu = `🍔 Hamburguesas

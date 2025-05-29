@@ -6,6 +6,9 @@ import { flowTalk } from "@/flows/talk.flow"
 import { flowOrder } from "@/flows/order.flow"
 import { getCurrentFlow } from "@/utils/handleCurrentFlow"
 import { FlowValue } from "@/utils/types"
+import prisma from "@/lib/prisma"
+import { setActivePhoneNumber } from "@/actions/set-active-phone-number"
+import { Console } from "console"
 
 type CreatePromptParams = {
   history: string
@@ -40,7 +43,18 @@ Respuesta ideal (PEDIR|HABLAR|CONFIRMAR):
 }
 
 // This layer is used to determine user intention
-export default async (_: BotContext, { state, gotoFlow, fallBack }: BotMethods) => {
+export default async (ctx: BotContext, { state, gotoFlow, fallBack }: BotMethods) => {
+  const userMessage = ctx.body.trim()
+  const isAdmin = ctx.from === process.env.PHONE_NUMBER_ADMIN;
+
+  if (isAdmin && userMessage === 'ACTIVAR DEMO') {
+    await setActivePhoneNumber('bot')
+  }
+
+  if (isAdmin && userMessage === 'ACTIVAR OWNER') {
+    await setActivePhoneNumber('owner')
+  }
+
   const history = getHistoryParse(state as BotState)
   const currentFlow = getCurrentFlow(state as BotState)
   const prompt = createPromptInitial({ history, currentState: currentFlow })
