@@ -50,13 +50,13 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   if (isAdmin && userMessage === 'ACTIVAR DEMO') {
     await setActivePhoneNumber('bot')
     await flowDynamic('Demo Activado')
-    endFlow()
+    return endFlow()
   }
 
   if (isAdmin && userMessage === 'ACTIVAR OWNER') {
     await setActivePhoneNumber('owner')
     await flowDynamic('Owner Activado')
-    endFlow()
+    return endFlow()
   }
 
   const history = getHistoryParse(state as BotState)
