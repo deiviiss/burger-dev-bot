@@ -44,7 +44,7 @@ Respuesta ideal (PEDIR|HABLAR|CONFIRMAR):
 
 // This layer is used to determine user intention
 export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic, endFlow }: BotMethods) => {
-  const userMessage = ctx.body.trim()
+  const userMessage = ctx.body.trim().toLowerCase()
   const isAdmin = ctx.from === process.env.PHONE_NUMBER_ADMIN;
 
   if (isAdmin && userMessage === 'activar bot') {
