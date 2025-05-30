@@ -371,7 +371,11 @@ const flowAsks = addKeyword(EVENTS.ACTION)
     }
 
     if (paymentMethodFormat.includes('Tarjeta')) {
-      await flowDynamic('Perfecto, nuestro repartido lleva consigo su terminal bancaria')
+      await flowDynamic('Perfecto, nuestro repartidor lleva consigo su terminal bancaria',
+        {
+          delay: 1500
+        }
+      )
       return gotoFlow(flowConfirmOrder)
     }
   }
@@ -594,10 +598,10 @@ const flowTransferSelect = addKeyword(EVENTS.ACTION)
       //! Procesar image con AI
       await state.update({ paymenMethod: 'Transferencia Bancaria' })
       await flowDynamic('Validando...', {
-        delay: 1500
+        delay: 2500
       })
       await flowDynamic('¡Correcto!', {
-        delay: 1500
+        delay: 2000
       })
       return gotoFlow(flowConfirmOrder)
     }
