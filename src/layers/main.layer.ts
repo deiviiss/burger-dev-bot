@@ -47,15 +47,15 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   const userMessage = ctx.body.trim()
   const isAdmin = ctx.from === process.env.PHONE_NUMBER_ADMIN;
 
-  if (isAdmin && userMessage === 'ACTIVAR BOT') {
+  if (isAdmin && userMessage === 'activar bot') {
     await setActivePhoneNumber('bot')
-    await flowDynamic('Demo Activado')
+    await flowDynamic('Bot activado')
     return endFlow()
   }
 
-  if (isAdmin && userMessage === 'DESACTIVAR BOT') {
+  if (isAdmin && userMessage === 'desactivar bot') {
     await setActivePhoneNumber('owner')
-    await flowDynamic('Owner Activado')
+    await flowDynamic('Bot desactivado')
     return endFlow()
   }
 
