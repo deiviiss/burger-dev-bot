@@ -481,14 +481,14 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
         },
         body: JSON.stringify({
           number: '+5219811250049',
-          message: `📦 Un cliente ha completado la demostración posiblemente este interesado.
+          //           message: `📦 Un cliente ha completado la demostración posiblemente este interesado.
 
-Te dejo sus datos:
-          
-- Nombre: ${state.get('name')}
-- Teléfono: ${ctx.from}
-          `
-          // message: `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`
+          // Te dejo sus datos:
+
+          // - Nombre: ${state.get('name')}
+          // - Teléfono: ${ctx.from}
+          //           `
+          message: `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`
         })
       })
 
@@ -499,45 +499,45 @@ Te dejo sus datos:
         delay: 1500
       })
 
-      await flowDynamic(`📌 Este pedido fue una simulación.
+      //       await flowDynamic(`📌 Este pedido fue una simulación.
 
-Así funcionaría con tus propios clientes si tienes tu propio menú digital. 😊
-        `,
-        {
-          delay: 3000
-        })
+      // Así funcionaría con tus propios clientes si tienes tu propio menú digital. 😊
+      //         `,
+      //         {
+      //           delay: 3000
+      //         })
 
-      await flowDynamic(`🍔🍕🥗 Si te animas a tener tu propio menú digital, escríbeme al *9811250049* y con gusto te ayudo. 😊
-        `,
-        {
-          delay: 2500
-        })
+      //       await flowDynamic(`🍔🍕🥗 Si te animas a tener tu propio menú digital, escríbeme al *9811250049* y con gusto te ayudo. 😊
+      //         `,
+      //         {
+      //           delay: 2500
+      //         })
 
       await flowDynamic(`Hasta luego 👋`,
         {
           delay: 1000
         })
 
-      if (state.get('newUser')) {
-        await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`,
-          {
-            delay: 1000
-          })
-        await flowDynamic(`Como agradecimiento, aquí tienes tu código de descuento: *H0LA18* 🎁`,
-          {
-            delay: 1000
-          }
-        )
-        await flowDynamic(`Este código te da *$199 de descuento* en la compra de tu propio menú digital. Es válido hasta el *5 de junio de 2025*.`,
-          {
-            delay: 1000
-          }
-        )
-        await flowDynamic(`Si te interesa activarlo o tienes dudas, *mándame un mensaje* y con gusto te ayudo. ¡Gracias por probar la demo! 😊`,
-          {
-            delay: 1000
-          })
-      }
+      // if (state.get('newUser')) {
+      //   await flowDynamic(`🎉 ¡Felicidades! Has completado la demo del menú digital exitosamente.`,
+      //     {
+      //       delay: 1000
+      //     })
+      //   await flowDynamic(`Como agradecimiento, aquí tienes tu código de descuento: *H0LA18* 🎁`,
+      //     {
+      //       delay: 1000
+      //     }
+      //   )
+      //   await flowDynamic(`Este código te da *$199 de descuento* en la compra de tu propio menú digital. Es válido hasta el *5 de junio de 2025*.`,
+      //     {
+      //       delay: 1000
+      //     }
+      //   )
+      //   await flowDynamic(`Si te interesa activarlo o tienes dudas, *mándame un mensaje* y con gusto te ayudo. ¡Gracias por probar la demo! 😊`,
+      //     {
+      //       delay: 1000
+      //     })
+      // }
 
       await clearHistory(state as BotState)
       return endFlow()
