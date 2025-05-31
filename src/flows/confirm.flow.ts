@@ -463,6 +463,15 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
         }
       })
 
+      await prisma.user.update({
+        where: {
+          id: user.id
+        },
+        data: {
+          name: state.get('name')
+        }
+      })
+
       // Send message to the restaurant
       console.log('Enviando mensaje a la cocina...')
       await fetch(`${process.env.DOMAIN}/v1/messages`, {
