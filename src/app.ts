@@ -1,6 +1,5 @@
 import { createBot, MemoryDB } from '@builderbot/bot'
 import { config } from "@/config"
-import { JsonFileDB as Database } from '@builderbot/database-json'
 import { baileysProvider } from '@/provider'
 import flows from '@/flows'
 
@@ -11,14 +10,14 @@ const main = async () => {
     database: new MemoryDB()
   })
 
-  baileysProvider.server.post(
-    '/v1/messages',
-    handleCtx(async (bot, req, res) => {
-      const { number, message, urlMedia } = req.body
-      await bot.sendMessage(number, message, { media: urlMedia ?? null })
-      return res.end('sended')
-    })
-  )
+  // baileysProvider.server.post(
+  //   '/v1/messages',
+  //   handleCtx(async (bot, req, res) => {
+  //     const { number, message, urlMedia } = req.body
+  //     await bot.sendMessage(number, message, { media: urlMedia ?? null })
+  //     return res.end('sended')
+  //   })
+  // )
 
   // baileysProvider.server.post(
   //   '/v1/register',

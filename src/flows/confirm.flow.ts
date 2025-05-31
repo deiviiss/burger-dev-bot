@@ -408,7 +408,7 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
 
     await flowDynamic(result)
   })
-  .addAction({ capture: true }, async (ctx, { state, flowDynamic, endFlow, fallBack }) => {
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, endFlow, fallBack, provider }) => {
     const confirmation = ctx.body
 
     if (confirmation.includes('_event_')) {
@@ -474,23 +474,11 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
 
       // Send message to the restaurant
       console.log('Enviando mensaje a la cocina...')
-      await fetch(`${process.env.DOMAIN}/v1/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          number: '+5219811250049',
-          //           message: `📦 Un cliente ha completado la demostración posiblemente este interesado.
-
-          // Te dejo sus datos:
-
-          // - Nombre: ${state.get('name')}
-          // - Teléfono: ${ctx.from}
-          //           `
-          message: `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`
-        })
-      })
+      await provider.sendMessage(
+        '+5219811250049',
+        `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`,
+        { media: null }
+      )
 
       await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊', {
         delay: 1500
