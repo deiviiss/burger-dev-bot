@@ -474,11 +474,13 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
 
       // Send message to the restaurant
       console.log('Enviando mensaje a la cocina...')
-      await provider.sendMessage(
+      const rta = await provider.sendMessage(
         '+5219811250049',
         `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`,
         { media: null }
       )
+
+      console.log('rta', rta)
 
       await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊', {
         delay: 1500
