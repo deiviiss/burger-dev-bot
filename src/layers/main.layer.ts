@@ -6,9 +6,7 @@ import { flowTalk } from "@/flows/talk.flow"
 import { flowOrder } from "@/flows/order.flow"
 import { getCurrentFlow } from "@/utils/handleCurrentFlow"
 import { FlowValue } from "@/utils/types"
-import prisma from "@/lib/prisma"
 import { setActivePhoneNumber } from "@/actions/set-active-phone-number"
-import { Console } from "console"
 
 type CreatePromptParams = {
   history: string
@@ -17,7 +15,7 @@ type CreatePromptParams = {
 
 const createPromptInitial = ({ history, currentState }: CreatePromptParams) => {
   const PROMPT_INITIAL_CONVERSATION = `
-Como una inteligencia artificial avanzada, tu tarea es analizar el contexto de una conversación relacionada con Mi menú digital y determinar cuál de las siguientes acciones es la más adecuada a realizar:
+Como una inteligencia artificial avanzada, tu tarea es analizar el contexto de una conversación relacionada con BurgerDev y determinar cuál de las siguientes acciones es la más adecuada a realizar:
 --------------------------------------------------------
 Historial de conversación:
 ${history}
@@ -64,6 +62,9 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   const prompt = createPromptInitial({ history, currentState: currentFlow })
 
   const intentPrediction = await getAIResponse(prompt);
+
+  console.log('intentPrediction', intentPrediction)
+
   const trimmedIntent = intentPrediction.trim().toUpperCase();
   await state.update({ currentFlow: trimmedIntent })
 
@@ -75,7 +76,7 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   if (trimmedIntent === 'PEDIR') return gotoFlow(flowConfirm);
   if (trimmedIntent === 'HABLAR') return gotoFlow(flowTalk);
 
-  return fallBack(`Hola, soy el asistente para pedidos.Por favor, arma tu pedido aquí:
-    
-    https://menu-digital-indol.vercel.app 🍔📱`)
+  return fallBack(`Hola, soy el asistente para pedidos. Por favor, arma tu pedido aquí:
+
+https://burgerdev-demo.vercel.app 🍔📱`)
 }

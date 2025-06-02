@@ -1,8 +1,7 @@
 'use server'
 
-export async function getMenu(): Promise<{ menu: string; promotions: string }> {
-  try {
-    const menu = `🍔 Hamburguesas
+export function getMenu(): { menu: string; promotions: string } {
+  const menu = `🍔 Hamburguesas
 Hamburguesa Sencilla
 Carne de res, lechuga, tomate, cebolla y aderezo especial
 💵 $45.00
@@ -98,7 +97,7 @@ Flan Napolitano
 Porción de flan casero con caramelo
 💵 $30.00
 `
-    const promotions = `
+  const promotions = `
 🎉 Promociones
 Combo Hamburguesa + Papas + Refresco
 Hamburguesa sencilla con papas chicas y refresco
@@ -119,12 +118,8 @@ Obtén un refresco gratis en compras mayores a $100
 🤑 Ahorra $20.00
 `
 
-    return {
-      menu,
-      promotions
-    }
-  } catch (error) {
-    console.error("Error al obtener productos:", error)
-    return null
+  return {
+    menu,
+    promotions
   }
 }

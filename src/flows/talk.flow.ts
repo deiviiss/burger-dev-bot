@@ -6,16 +6,16 @@ import { BotState } from "@builderbot/bot/dist/types";
 import { getMenu } from "@/actions/products/get-menu";
 import { handleCurrentFlowState } from "@/utils/handleCurrentFlow";
 
-const createPromptTalk = async (history: string) => {
-  const { menu, promotions } = await getMenu()
+const createPromptTalk = (history: string) => {
+  const { menu, promotions } = getMenu()
   const schedule = 'Lunes a Domingo de 18:00 a 00:00 horas'
   const address = 'José María Iglesias Mz 39 Lt 35 Presidentes de México, 24088 Campeche, Camp.'
 
   const prompt = `
-  Eres el asistente digital de **Burger Dev**, en modo "TALK". Tu tarea es ayudar al cliente con dudas sobre el menú, ingredientes, precios, promociones y horarios. Responde siempre con un tono amable, relajado y claro. Usa emojis de forma natural para hacerlo cercano y ligero.
+  Eres el asistente digital de *Burger Dev*, en modo "TALK". Tu tarea es ayudar al cliente con dudas sobre el menú, ingredientes, precios, promociones y horarios. Responde siempre con un tono amable, relajado y claro. Usa emojis de forma natural para hacerlo cercano y ligero.
   
 📌 Si es el primer mensaje del cliente (no hay historial), salúdalo con un tono amable, relajado y claro. Usa emojis de forma natural para hacerlo cercano y ligero y pregúntale directamente:
-Ejemplo (se puede modificar):
+Ejemplo (se puede modificar, se creativo):
 “¿Qué se te antoja hoy? Puedes checar el menú digital aquí:
 
 
@@ -102,12 +102,14 @@ https://burgerdev-demo.vercel.app 🍔📱
 
 // Responsible for requesting the necessary data to create a order
 const flowTalk = addKeyword(EVENTS.ACTION)
-  .addAction(async (_, { flowDynamic, state, gotoFlow }) => {
+  .addAction(async (_, { flowDynamic, state }) => {
     console.log('===== FLOW TALK =====')
     const history = getHistoryParse(state as BotState);
     await handleCurrentFlowState('TALK', state as BotState)
+
     console.log("Historial parseado:", history);
-    const aiResponse = await getAIResponse(await createPromptTalk(history));
+
+    const aiResponse = await getAIResponse(createPromptTalk(history));
 
     await handleHistory({ content: aiResponse, role: "assistant" }, state as BotState)
 

@@ -161,20 +161,22 @@ Respuesta ideal: (CONFIRMADO|MODIFICAR)
   return PROMPT
 }
 
-// FLOWS
+//====================== FLOWS ======================
 
-// This flow is used to confirm the order and get the verification code
+// This flow is used to confirm the verification code and get the order
 const flowConfirm = addKeyword(EVENTS.ACTION)
-  .addAction(async (_, { state, flowDynamic, endFlow }) => {
+  .addAction(async (_, { state, flowDynamic, endFlow, gotoFlow }) => {
     console.log('===== FLOW CONFIRM =====')
     const history = getHistoryParse(state as BotState)
     try {
       const verificationCode = await getAIResponse(findCodePrompt(history))
-      console.log('verificationCode:', verificationCode.toString().trim())
       const totalOrder = await getAIResponse(getTotalOrderPrompt(history))
 
       if (!verificationCode || verificationCode.trim() === '') {
-        await flowDynamic(`No pudimos encontrar un código de verificación válido. Por favor, realiza tu pedido nuevamente desde el menú digital. 😊`)
+        await flowDynamic(`No pudimos encontrar un código de verificación válido. Por favor, realiza tu pedido nuevamente desde el menú digital.
+          
+https://burgerdev-demo.vercel.app 😊
+          `)
         await clearHistory(state as BotState)
         return endFlow()
       }
@@ -182,7 +184,7 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
       if (verificationCode.trim().toLowerCase() === 'no-code') {
         await flowDynamic(`Por favor realiza tu pedido en nuestro menú digital para tener un código de verificación. Aquí está el enlace:   
 
-https://menu-digital-indol.vercel.app 😊`)
+https://burgerdev-demo.vercel.app 😊`)
 
         await clearHistory(state as BotState)
         return endFlow()
@@ -239,7 +241,7 @@ https://burgerdev-demo.vercel.app 😊`)
       if (verificationCode.trim() !== orderDB?.shortId) {
         await flowDynamic(`Parece que el código ha expirado. Por favor, realiza tu pedido en nuestro menú digital para tener un código de verificación actualizado. Aquí está el enlace:
 
-https://menu-digital-indol.vercel.app 😊`)
+https://burgerdev-demo.vercel.app 😊`)
 
         await clearHistory(state as BotState)
         return endFlow()
@@ -248,7 +250,7 @@ https://menu-digital-indol.vercel.app 😊`)
       if (Number(totalOrder.trim()) !== orderDB?.totalPrice) {
         await flowDynamic(`Parece que tu pedido ha cambiado. Por favor, revisa tu pedido en nuestro menú digital para tener un código de verificación actualizado. Aquí está el enlace:
 
-https://menu-digital-indol.vercel.app 😊`)
+https://burgerdev-demo.vercel.app 😊`)
         await clearHistory(state as BotState)
         return endFlow()
       }
@@ -265,6 +267,8 @@ https://menu-digital-indol.vercel.app 😊`)
       };
 
       await state.update({ order: order })
+
+      return gotoFlow(flowAsks)
     } catch (error) {
       console.error('Error en el flujo de confirmación:', error)
       await flowDynamic(`Ocurrió un error al procesar tu pedido, por favor intenta de nuevo más tarde. 😊`)
@@ -272,26 +276,24 @@ https://menu-digital-indol.vercel.app 😊`)
       return endFlow()
     }
   })
-  .addAction(async (_, { flowDynamic, gotoFlow }) => {
+
+// This flow is used to ask for the name, address and payment method of the user
+// ==================================================================================
+const flowAsks = addKeyword(EVENTS.ACTION)
+  .addAction(async (_, { flowDynamic }) => {
     await flowDynamic('Perfecto, ahora solo necesito algunos datos antes de enviarlo 😊')
 
     await flowDynamic('Solo serán 3 preguntas rápidas para completar tu pedido 📝', {
       delay: 1000
     })
-
-
-    return gotoFlow(flowAsks)
   })
-
-// This flow is used to ask for the name, address and payment method of the user
-// ==================================================================================
-const flowAsks = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic }) => {
     await flowDynamic('¿Quién recibe?')
   })
   .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack }) => {
     const name = ctx.body
 
+    //! validation attached to the flow
     if (name.includes('_event_')) {
       await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`), {
         delay: 1000
@@ -315,6 +317,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
   .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack }) => {
     const address = ctx.body
 
+    //! validation attached to the flow
     if (address.includes('_event_')) {
       await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`, {
         delay: 1000
@@ -341,6 +344,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
   .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack, gotoFlow }) => {
     const paymentMethod = ctx.body
 
+    //! validation attached to the flow
     if (paymentMethod.includes('_event_')) {
       await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`), {
         delay: 1000
@@ -356,7 +360,7 @@ const flowAsks = addKeyword(EVENTS.ACTION)
 
     const paymentMethodFormat = await getAIResponse(getPaymentMethod(paymentMethod))
     await state.update({ paymentMethod: paymentMethodFormat })
-    console.log('paymentMethod:', paymentMethodFormat)
+
     if (paymentMethodFormat.trim().toLowerCase() === 'no-payment') {
       await flowDynamic(`Opción no reconocida. Por favor, escríbeme el número o nombre de la opción que prefieras. 😊`)
       return fallBack('1- Transferencia Bancaria\n2- Efectivo\n3- Tarjeta de Crédito/Débito')
@@ -580,7 +584,10 @@ const flowTransferSelect = addKeyword(EVENTS.ACTION)
   .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow, endFlow, state }) => {
     const confirmation = ctx.body
 
-    const isImage = !confirmation.includes('_event_location_') || !confirmation.includes('_event_voice_') || !confirmation.includes('_event_document')
+    const isImage = !confirmation.includes('_event_location_') &&
+      !confirmation.includes('_event_voice_') &&
+      !confirmation.includes('_event_document');
+
 
     if (!isImage) {
       await flowDynamic(`No puedo procesar ubicaciones, audios, archivos o mensajes especiales en este paso. 🙈`, {
@@ -593,16 +600,33 @@ const flowTransferSelect = addKeyword(EVENTS.ACTION)
       return fallBack()
     }
 
-    if (confirmation.includes('_event_media_')) {
+    if (ctx.message.imageMessage?.url) {
       //! Procesar image con AI
-      await state.update({ paymenMethod: 'Transferencia Bancaria' })
-      await flowDynamic('Validando...', {
-        delay: 2500
-      })
-      await flowDynamic('¡Correcto!', {
-        delay: 2000
-      })
-      return gotoFlow(flowConfirmOrder)
+      // try {
+      //   console.log('ctx.message.imageMessage.url', ctx)
+
+      //   const media = await downloadMediaMessage(ctx.message, 'buffer', { endByte: 10 * 1024 * 1024, })
+
+      //   console.log('media', media)
+      //   const base64 = media.toString('base64');
+
+      //   const rta = await getAIResponseImage(base64)
+      //   console.log('rta', rta)
+
+      //   if (rta.toLowerCase().includes('Sí')) {
+      //     await state.update({ paymenMethod: 'Transferencia Bancaria' })
+      //     await flowDynamic('✅ El comprobante ha sido validado correctamente.')
+      //     return gotoFlow(flowConfirmOrder)
+      //   } else {
+      //     await flowDynamic('❌ No pude confirmar el pago en el comprobante. ¿Podrías enviarlo de nuevo o verificar que esté legible?')
+      //     return fallBack()
+      //   }
+
+      // } catch (error) {
+      //   console.error('Error al procesar el comprobante:', error)
+      //   await flowDynamic('😓 Tuvimos un problema al analizar el comprobante. Inténtalo de nuevo más tarde.')
+      //   return fallBack()
+      // }
     }
 
     if (confirmation.trim().toLowerCase() !== 'cancelar') {
