@@ -392,23 +392,17 @@ const flowAsks = addKeyword(EVENTS.ACTION)
 const flowConfirmOrder = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic, state }) => {
     const history = getHistoryParse(state as BotState)
-    console.log('Historial parseado in Asks:', history)
-    console.log('============ end Historial parseado in Asks =================')
     const name = state.get('name')
-    console.log('name:', name)
     const address = state.get('address')
-    console.log('address:', address)
     const paymentMethod = state.get('paymentMethod')
-    console.log('paymentMethod:', paymentMethod)
     const order = state.get('order')
-    console.log('order:', order)
     const amountCash = state.get('amountCash')
 
     const result = await getAIResponse(confirmOrderPrompt({
       history, name, address, paymentMethod, order, amountCash
     }))
+
     await handleHistory({ content: result, role: 'assistant' }, state as BotState)
-    console.log('Resultado:', result)
 
     await flowDynamic(result)
   })
@@ -436,7 +430,6 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
       //! Create or update the user in the database could be a utility function
       // create a new user if it doesn't exist
       user = await getUserByPhoneNumber(ctx.from)
-
       if (!user) {
         const newUser = await createUpdateUser({
           name: state.get('name'),
@@ -478,13 +471,11 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
 
       // Send message to the restaurant
       console.log('Enviando mensaje a la cocina...')
-      const rta = await provider.sendMessage(
+      await provider.sendMessage(
         '+5219811250049',
         `📦 Nuevo pedido confirmado de ${state.get('name')}.\nDirección: ${state.get('address')}\nMétodo de pago: ${state.get('paymentMethod')}`,
         { media: null }
       )
-
-      console.log('rta', rta)
 
       await flowDynamic('¡Perfecto! Tu pedido ha sido confirmado y ya esta siendo preparado. 😊', {
         delay: 1500

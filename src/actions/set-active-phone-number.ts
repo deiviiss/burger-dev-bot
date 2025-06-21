@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 
-export const setActivePhoneNumber = async (label: 'bot' | 'owner') => {
+export const setActivePhoneNumber = async (label: 'bot' | 'user') => {
   try {
     await prisma.phoneNumberMenu.updateMany({
       data: { isActive: false },

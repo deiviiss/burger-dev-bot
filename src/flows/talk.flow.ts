@@ -107,8 +107,6 @@ const flowTalk = addKeyword(EVENTS.ACTION)
     const history = getHistoryParse(state as BotState);
     await handleCurrentFlowState('TALK', state as BotState)
 
-    console.log("Historial parseado:", history);
-
     const aiResponse = await getAIResponse(createPromptTalk(history));
 
     await handleHistory({ content: aiResponse, role: "assistant" }, state as BotState)

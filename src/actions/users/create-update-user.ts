@@ -25,6 +25,7 @@ export const createUpdateUser = async (input: InputUser) => {
   const { id, name, phoneNumber } = userParsed.data
 
   try {
+
     if (id) {
       const userUpdated = await prisma.user.update({
         where: { id },

@@ -21,7 +21,6 @@ export async function getAIResponse(prompt: string): Promise<string> {
     })
 
     const data = await response.json()
-    console.log('data', data)
 
     // Extract the response from the model
     return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Estoy teniendo problemas para responder a tu solicitud, por favor intenta de nuevo más tarde.'

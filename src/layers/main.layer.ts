@@ -52,7 +52,7 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   }
 
   if (isAdmin && userMessage === 'desactivar bot') {
-    await setActivePhoneNumber('owner')
+    await setActivePhoneNumber('user')
     await flowDynamic('Bot desactivado')
     return endFlow()
   }
@@ -62,8 +62,6 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   const prompt = createPromptInitial({ history, currentState: currentFlow })
 
   const intentPrediction = await getAIResponse(prompt);
-
-  console.log('intentPrediction', intentPrediction)
 
   const trimmedIntent = intentPrediction.trim().toUpperCase();
   await state.update({ currentFlow: trimmedIntent })
