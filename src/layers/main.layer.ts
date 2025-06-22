@@ -3,10 +3,9 @@ import { getAIResponse } from "@/services/ai-services"
 import { getHistoryParse } from "@/utils/handleHistory"
 import { flowConfirm } from "@/flows/confirm.flow"
 import { flowTalk } from "@/flows/talk.flow"
-import { flowOrder } from "@/flows/order.flow"
 import { getCurrentFlow } from "@/utils/handleCurrentFlow"
 import { FlowValue } from "@/utils/types"
-import { setActivePhoneNumber } from "@/actions/set-active-phone-number"
+import { setBranchPhoneNumber } from "@/actions/set-active-phone-number"
 
 type CreatePromptParams = {
   history: string
@@ -45,15 +44,15 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   const userMessage = ctx.body.trim().toLowerCase()
   const isAdmin = ctx.from === process.env.PHONE_NUMBER_ADMIN;
 
-  if (isAdmin && userMessage === 'activar bot') {
-    await setActivePhoneNumber('bot')
-    await flowDynamic('Bot activado')
-    return endFlow()
-  }
+  const match = userMessage.match(/^(activar|desactivar) bot (.+)$/)
 
-  if (isAdmin && userMessage === 'desactivar bot') {
-    await setActivePhoneNumber('user')
-    await flowDynamic('Bot desactivado')
+  if (isAdmin && match) {
+    const mode = match[1] === 'activar' ? 'bot' : 'user'
+    const label = match[2]
+
+    const result = await setBranchPhoneNumber(label, mode)
+
+    await flowDynamic(result.message)
     return endFlow()
   }
 

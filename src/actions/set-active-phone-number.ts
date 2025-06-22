@@ -1,17 +1,26 @@
-import prisma from "@/lib/prisma";
+// src/actions/branches/set-branch-phone.ts
 
-export const setActivePhoneNumber = async (label: 'bot' | 'user') => {
-  try {
-    await prisma.phoneNumberMenu.updateMany({
-      data: { isActive: false },
-    });
+import prisma from '@/lib/prisma'
 
-    await prisma.phoneNumberMenu.update({
-      where: { label },
-      data: { isActive: true },
-    });
-  } catch (error) {
-    console.error("Error setting active phone number:", error);
-    throw error;
+export const setBranchPhoneNumber = async (label: string, mode: 'bot' | 'user') => {
+  const branch = await prisma.branch.findUnique({
+    where: { label }
+  })
+
+  if (!branch) {
+    return { ok: false, message: 'Sucursal no encontrada' }
   }
-};
+
+  const phoneToSet = mode === 'bot' ? branch.phoneBot : branch.phoneUser
+
+  if (!phoneToSet) {
+    return { ok: false, message: `No se ha configurado el número para el modo ${mode}` }
+  }
+
+  await prisma.branch.update({
+    where: { id: branch.id },
+    data: { phone: phoneToSet }
+  })
+
+  return { ok: true, message: `Bot ${mode === 'bot' ? 'activado' : 'desactivado'} para ${label}` }
+}
