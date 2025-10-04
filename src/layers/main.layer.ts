@@ -23,17 +23,35 @@ Flujo actual de conversación (puede ayudar a orientar tu decisión):
 currentFlow: ${currentState ?? 'ninguno'}
 
 Posibles acciones a realizar:
-1. PEDIR: Esta acción se debe realizar cuando el cliente exprese su deseo de hacer un pedido u ordenar.
-2. HABLAR: Esta acción se debe realizar cuando el cliente tenga consultas o necesite más información sobre nuestro menú.
-3. CONFIRMAR: Esta acción se debe realizar cuando se haya llegado a un acuerdo mutuo, proporcionando un pedido.
+1. HABLAR: Esta acción se debe realizar cuando el cliente tenga consultas o necesite más información sobre nuestro menú.
+2. CONFIRMAR: Esta acción se debe realizar cuando se haya detectado que hay un pedido en el historial de conversación bajo la siguiente estructura: 
+
+🛒 Nuevo Pedido
+
+Código de verificación: BD-XXXXX
+
+1x Producto - $XX.XX
+
+Total: $XX.XX
+
+------
+Tipo de pedido: Domicilio |  Para pasar a recoger
+
+👤 Cliente: [Nombre]
+🏠 Dirección: [Dirección] // Solo si es pedido de domicilio
+💳 Pago: [Método de pago]
+
+¡Gracias por tu pedido! Por favor, presiona el botón de enviar mensaje para continuar.
 --------------------------------------------------------
 Tu objetivo es comprender la intención del cliente y seleccionar la acción más adecuada en respuesta a su declaración.
 
 ⚠️ IMPORTANTE:
-- Si el cliente muestra intención de ordenar (ej. "quiero pedir", "quiero ordenar algo"), pero NO ha recibido información del menú aún (según el historial o el currentFlow), debes mantener la acción como HABLAR.
-- Solo responde PEDIR si el cliente ya ha visto el menú y ha mencionado productos específicos del menú.
+- Solo responde con CONFIRMAR si encuentras la estructura completa del pedido formateado en el historial
+- Si el mensaje contiene "🛒 Nuevo Pedido", "Código de verificación: BD-", "👤 Cliente:", "Tipo de pedido:" y "💳 Pago:", entonces es CONFIRMAR
+- Si NO encuentras TODOS estos elementos en el mensaje, responde con HABLAR
+- NO respondas CONFIRMAR solo porque el cliente diga "quiero pedir" - debe tener la estructura completa del pedido
 
-Respuesta ideal (PEDIR|HABLAR|CONFIRMAR):
+Respuesta ideal (HABLAR|CONFIRMAR):
   `.trim()
 
   return PROMPT_INITIAL_CONVERSATION
@@ -65,12 +83,7 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   const trimmedIntent = intentPrediction.trim().toUpperCase();
   await state.update({ currentFlow: trimmedIntent })
 
-  console.log('===== DISCRIMINADOR =====')
-  console.log('Intent Prediction:', intentPrediction)
-  console.log('currentFlow:', currentFlow)
-
   if (trimmedIntent === 'CONFIRMAR') return gotoFlow(flowConfirm);
-  if (trimmedIntent === 'PEDIR') return gotoFlow(flowConfirm);
   if (trimmedIntent === 'HABLAR') return gotoFlow(flowTalk);
 
   return fallBack(`Hola, soy el asistente para pedidos. Por favor, arma tu pedido aquí:
