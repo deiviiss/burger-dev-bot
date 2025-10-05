@@ -297,7 +297,7 @@ const flowTransfer = addKeyword(EVENTS.ACTION)
       CLABE: 012345678901234567
       Titular: Burger Bot Demo
   
-      Por favor, realiza la transferencia y envíame el comprobante. 😊`)
+Por favor, realiza la transferencia y envíame el comprobante. 😊`)
   })
   .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow, endFlow, state }) => {
     const confirmation = ctx.body

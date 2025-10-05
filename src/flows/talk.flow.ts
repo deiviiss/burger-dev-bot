@@ -8,8 +8,8 @@ import { handleCurrentFlowState } from "@/utils/handleCurrentFlow";
 
 const createPromptTalk = (history: string) => {
   const { menu, promotions } = getMenu()
-  const schedule = 'Lunes a Domingo de 18:00 a 00:00 horas'
-  const address = 'José María Iglesias Mz 39 Lt 35 Presidentes de México, 24088 Campeche, Camp.'
+  const schedule = 'Martes a Domingo de 06:oo p.m a 12:00 a.m.. Descanso Lunes'
+  const address = 'Andador Nuevo León 21, Fidel Velázquez, 24023 San Francisco de Campeche, Camp., México'
   const url = 'https://burgerdev-demo.vercel.app 🍔📱'
 
   const prompt = `
