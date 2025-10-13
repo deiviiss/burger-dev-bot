@@ -1,6 +1,6 @@
 import { createFlow } from '@builderbot/bot'
 import { mainFlow } from './welcomeFlow'
-import { flowConfirm, flowConfirmOrder, flowOrderComplete, flowTransfer } from './confirm.flow'
+import { flowConfirm, flowConfirmOrder, flowOrderComplete, flowTransferPayment, flowCashPayment } from './confirm.flow'
 import { flowTalk } from './talk.flow'
 import { flowOrder } from './order.flow'
 
@@ -12,5 +12,6 @@ export default createFlow([
   flowOrder,
   flowConfirmOrder,
   flowOrderComplete,
-  flowTransfer
+  flowTransferPayment,
+  flowCashPayment
 ])

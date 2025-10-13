@@ -270,9 +270,12 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
 
       if (state.get('paymentMethod').toLowerCase().includes('transferencia')) {
 
-        return gotoFlow(flowTransfer)
+        return gotoFlow(flowTransferPayment)
       }
 
+      if (state.get('paymentMethod').toLowerCase().includes('efectivo')) {
+        return gotoFlow(flowCashPayment)
+      }
 
       return gotoFlow(flowOrderComplete)
     }
@@ -287,7 +290,7 @@ https://burgerdev-demo.vercel.app 😊`)
   }
   )
 
-const flowTransfer = addKeyword(EVENTS.ACTION)
+const flowTransferPayment = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic }) => {
 
     await flowDynamic(`Aquí tienes los datos bancarios para realizar tu transferencia:
@@ -299,7 +302,7 @@ const flowTransfer = addKeyword(EVENTS.ACTION)
   
 Por favor, realiza la transferencia y envíame el comprobante. 😊`)
   })
-  .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow, endFlow, state }) => {
+  .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow }) => {
     const confirmation = ctx.body
     await flowDynamic('Dame un momento validar la transferencia...', { delay: 3000 })
     return gotoFlow(flowOrderComplete)
@@ -332,7 +335,7 @@ Por favor, realiza la transferencia y envíame el comprobante. 😊`)
 
 
       //   if (rta.toLowerCase().includes('Sí')) {
-      //     await state.update({ paymenMethod: 'Transferencia Bancaria' })
+      //     await state.update({ paymentMethod: 'Transferencia Bancaria' })
       //     await flowDynamic('✅ El comprobante ha sido validado correctamente.')
       //     return gotoFlow(flowConfirmOrder)
       //   } else {
@@ -362,6 +365,49 @@ Por favor, realiza la transferencia y envíame el comprobante. 😊`)
       await flowDynamic('Hasta luego!')
       return
     }
+  })
+
+const flowCashPayment = addKeyword(EVENTS.ACTION)
+  .addAction(async (_, { flowDynamic }) => {
+    await flowDynamic('¿Con cuánto pagas? 💰')
+  })
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, fallBack, gotoFlow }) => {
+    const amount = ctx.body
+
+    if (amount.includes('_events_')) {
+      await flowDynamic(`No puedo procesar imágenes, audios o archivos en este paso. 🙈`, {
+        delay: 1000
+      });
+
+      await flowDynamic(`Por favor, escribe con cuanto pagas en números. ✍️`, {
+        delay: 1000
+      });
+
+      return fallBack()
+    }
+
+    // Parse and validate amount as a number
+    const parsedAmount = parseFloat(amount.replace(/[^0-9.,]/g, '').replace(',', '.'));
+    const total = state.get('order')?.totalPrice || 0
+
+    if (isNaN(parsedAmount)) {
+      await flowDynamic(`Por favor, escribe con cuanto pagas en números. Ejemplo: 200 o 200.00 ✍️`, {
+        delay: 1000
+      });
+      return fallBack();
+    }
+
+    // Validate that the amount is less than the total
+    if (parsedAmount < total) {
+      await flowDynamic(`El monto que indicaste ($${parsedAmount.toFixed(2)}) es menor al total del pedido ($${total.toFixed(2)}). 😅`, { delay: 1000 })
+      await flowDynamic(`Por favor, indica un monto mayor. ✍️`, { delay: 1000 })
+      // await flowDynamic(`Por favor, confirma si fue un error de escritura o si deseas cancelar el pedido.`, { delay: 1000 })
+      return fallBack()
+    }
+
+    await state.update({ amountCash: parsedAmount });
+
+    return gotoFlow(flowOrderComplete);
   })
 
 const flowOrderComplete = addKeyword(EVENTS.ACTION)
@@ -400,4 +446,4 @@ const flowOrderComplete = addKeyword(EVENTS.ACTION)
     return
   })
 
-export { flowConfirm, flowConfirmOrder, flowOrderComplete, flowTransfer }
+export { flowConfirm, flowConfirmOrder, flowOrderComplete, flowTransferPayment, flowCashPayment }
