@@ -75,10 +75,12 @@ export default async (ctx: BotContext, { state, gotoFlow, fallBack, flowDynamic,
   }
 
   const history = getHistoryParse(state as BotState)
+  // console.log('History in main layer:', history);
   const currentFlow = getCurrentFlow(state as BotState)
   const prompt = createPromptInitial({ history, currentState: currentFlow })
 
   const intentPrediction = await getAIResponse(prompt);
+  // console.log('Intent Prediction:', intentPrediction);
 
   const trimmedIntent = intentPrediction.trim().toUpperCase();
   await state.update({ currentFlow: trimmedIntent })

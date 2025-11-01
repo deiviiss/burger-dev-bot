@@ -1,4 +1,4 @@
-import { getAIResponse } from "@/services/ai-services";
+import { getAIResponse, getAIResponseImage } from "@/services/ai-services";
 import { clearHistory, handleHistory, getHistoryParse } from "@/utils/handleHistory";
 import { addKeyword, EVENTS } from "@builderbot/bot";
 import { BotState } from "@builderbot/bot/dist/types";
@@ -6,6 +6,10 @@ import prisma from "@/lib/prisma";
 import { createUpdateUser } from "@/actions/users/create-update-user";
 import { getUserByPhoneNumber } from "@/actions/users/get-user-by-phone-number";
 import { extractAllOrderData } from "@/utils/extractOrderData";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
+
 
 const confirmOrderPrompt = ({
   history,
@@ -204,7 +208,7 @@ const flowConfirmOrder = addKeyword(EVENTS.ACTION)
 
     await flowDynamic(summary)
   })
-  .addAction({ capture: true }, async (ctx, { state, flowDynamic, endFlow, fallBack, provider, gotoFlow }) => {
+  .addAction({ capture: true }, async (ctx, { state, flowDynamic, endFlow, fallBack, gotoFlow }) => {
     const confirmation = ctx.body
 
     if (confirmation.includes('_event_')) {
@@ -295,77 +299,145 @@ const flowTransferPayment = addKeyword(EVENTS.ACTION)
 
     await flowDynamic(`Aquí tienes los datos bancarios para realizar tu transferencia:
 
-      Banco: Santander
-      Cuenta: 0123456789
-      CLABE: 012345678901234567
-      Titular: Burger Bot Demo
-  
+        Banco: Santander
+        Cuenta: 0123456789
+        CLABE: 012345678901234567
+        Titular: Burger Bot Demo
+
 Por favor, realiza la transferencia y envíame el comprobante. 😊`)
   })
-  .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow }) => {
-    const confirmation = ctx.body
-    await flowDynamic('Dame un momento validar la transferencia...', { delay: 3000 })
-    return gotoFlow(flowOrderComplete)
-    const isImage = !confirmation.includes('_event_location_') &&
-      !confirmation.includes('_event_voice_') &&
-      !confirmation.includes('_event_document');
+  .addAction({ capture: true }, async (ctx, { flowDynamic, fallBack, gotoFlow, state, provider }) => {
+    const confirmation = ctx.body?.trim()?.toLowerCase() || '';
 
-    if (!isImage) {
-      await flowDynamic(`No puedo procesar ubicaciones, audios, archivos o mensajes especiales en este paso. 🙈`, {
-        delay: 1000
-      });
-      await flowDynamic(`Por favor, responde con el comprobante si has completado la transferencia o si deseas cancelar el pedido escribe "Cancelar". 😊`, {
-        delay: 1000
-      });
+    // Detect message type
+    const isImage = !!ctx.message?.imageMessage;
+    const isText = !!ctx.message?.conversation || !!ctx.message?.extendedTextMessage;
 
-      return fallBack()
-    }
+    //! Uncomment in production
+    // console.log('Tipo de mensaje:', {
+    //   type: isImage ? 'imagen' : isText ? 'texto' : 'otro',
+    //   confirmation
+    // });
 
-    //! Procesar image con AI
-    if (ctx.message.imageMessage?.url) {
-      // try {
-
-
-      //   const media = await downloadMediaMessage(ctx.message, 'buffer', { endByte: 10 * 1024 * 1024, })
-
-
-      //   const base64 = media.toString('base64');
-
-      //   const rta = await getAIResponseImage(base64)
-
-
-      //   if (rta.toLowerCase().includes('Sí')) {
-      //     await state.update({ paymentMethod: 'Transferencia Bancaria' })
-      //     await flowDynamic('✅ El comprobante ha sido validado correctamente.')
-      //     return gotoFlow(flowConfirmOrder)
-      //   } else {
-      //     await flowDynamic('❌ No pude confirmar el pago en el comprobante. ¿Podrías enviarlo de nuevo o verificar que esté legible?')
-      //     return fallBack()
-      //   }
-
-      // } catch (error) {
-      //   console.error('Error al procesar el comprobante:', error)
-      //   await flowDynamic('😓 Tuvimos un problema al analizar el comprobante. Inténtalo de nuevo más tarde.')
-      //   return fallBack()
-      // }
-    }
-
-    if (confirmation.trim().toLowerCase() !== 'cancelar') {
-      await flowDynamic(`Por favor, responde con el comprobante si has completado la transferencia o si deseas cancelar el pedido escribe "Cancelar". 😊`, {
-        delay: 1000
-      });
-      return fallBack()
-    }
-
-    if (confirmation.trim().toLowerCase() === 'cancelar') {
+    // Cancel order
+    if (isText && confirmation === 'cancelar') {
       // TODO: update model order
-      await flowDynamic(`Si deseas hacer un nuevo pedido, puedes volver a nuestro menú digital en cualquier momento: 
-        
-        https://burgerdev-demo.vercel.app 😊`)
-      await flowDynamic('Hasta luego!')
-      return
+      await flowDynamic('Pedido cancelado 😊', { delay: 1000 });
+      await flowDynamic(`Si deseas hacer un nuevo pedido, puedes volver a nuestro menú digital:
+
+https://burgerdev-demo.vercel.app 😊`);
+      await flowDynamic('Hasta luego!');
+      return;
     }
-  })
+
+    // If text but not "cancelar", ask for image again
+    if (isText && confirmation !== 'cancelar') {
+      await flowDynamic(
+        `Por favor, envíame el comprobante como imagen o escribe "Cancelar" para detener el pedido. 😊`,
+        { delay: 1000 }
+      );
+      return fallBack();
+    }
+
+    // Process image
+    if (isImage) {
+      await flowDynamic('Dame un momento para validar la transferencia...', { delay: 2000 });
+
+      try {
+        // const imageUrl = ctx.message.imageMessage.url;
+
+        // Save the image in a temporary folder (according to the official doc)
+        const localPath = await provider.saveFile(ctx, { path: "./tmp" });
+        // console.log("📸 Archivo guardado en:", localPath);
+
+        // Read the image and convert it to base64
+        const imageBuffer = await fs.readFile(localPath);
+        // console.log("📸 Imagen leída:", imageBuffer);
+        const base64 = imageBuffer.toString('base64');
+
+        // Process image with AI
+        const rta = await getAIResponseImage(base64, {
+          ownerName: "Carlos David Hilera Ramirez",
+          cardEnding: "0967",
+          total: state.get("order")?.totalPrice || 0,
+        })
+
+        let result: {
+          is_receipt: boolean;
+          valid_name: boolean;
+          valid_account: boolean;
+          valid_amount: boolean;
+          message: string;
+        };
+        try {
+          const cleanJson = rta
+            .replace(/^[\s\n\r]+|[\s\n\r]+$/g, "")
+            .replace(/```json|```/g, "")
+            .replace(/\n/g, " ")
+
+          result = JSON.parse(cleanJson);
+        } catch {
+          await flowDynamic("❌ No pude interpretar el comprobante. Inténtalo de nuevo, por favor.");
+          return fallBack();
+        }
+
+        const { is_receipt, valid_name, valid_account, valid_amount } = result;
+
+        // If the image doesn't look like a bank receipt
+        if (!is_receipt) {
+          await flowDynamic("❌ La imagen no parece un comprobante bancario. Por favor, verifica que sea la captura correcta.");
+          await fs.unlink(localPath);
+          return fallBack();
+        }
+
+        // If some data is missing
+        if (!valid_name || !valid_account || !valid_amount) {
+          const issues = [];
+
+          if (!valid_name) issues.push("el nombre del titular");
+          if (!valid_account) issues.push("la cuenta bancaria");
+          if (!valid_amount) issues.push("el monto de la transferencia");
+
+          await flowDynamic(`❌ Detecté que ${issues.join(" y ")} no coincide con los datos del negocio.`);
+          await flowDynamic(`Por favor, revisa tu comprobante o vuelve a enviarlo si fue un error. 😊`);
+          await fs.unlink(localPath);
+          return fallBack();
+        }
+
+        // Everything is valid
+        await state.update({ paymentMethod: 'Transferencia Bancaria' });
+        await flowDynamic('✅ El comprobante ha sido validado correctamente.');
+
+        // Send message to the restaurant
+        await provider.sendMessage(
+          '+5219811250049',
+          `📦 Nuevo comprobante de ${state.get('name')}.\n` +
+          `✅ Validado automáticamente por el sistema.`,
+          {
+            media: localPath
+          }
+        )
+
+        await fs.unlink(localPath);
+
+        return gotoFlow(flowOrderComplete);
+      } catch (error) {
+        console.error('Error al procesar el comprobante:', error);
+        await flowDynamic('😓 Tuvimos un problema al analizar el comprobante. Inténtalo de nuevo más tarde.');
+        return fallBack();
+      }
+    }
+
+    // Reject audios, locations or documents and other types of messages
+    await flowDynamic(`No puedo procesar ese tipo de mensaje en este paso. 🙈`, {
+      delay: 1000
+    });
+    await flowDynamic(`Por favor, envíame el comprobante como imagen o escribe "Cancelar" para detener el pedido. 😊`, {
+      delay: 1000
+    });
+
+    return fallBack();
+  });
 
 const flowCashPayment = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic }) => {
@@ -435,10 +507,10 @@ const flowOrderComplete = addKeyword(EVENTS.ACTION)
       })
 
     // Send message to the restaurant
-
     await provider.sendMessage(
       '+5219811250049',
-      `📦 Nuevo pedido confirmado de ${state.get('name')}.\n${state.get('address') !== '' ? `Dirección: ${state.get('address')}\n` : 'Para pasar a recoger'}Método de pago: ${state.get('paymentMethod')}`,
+      `📦 Pedido confirmado de ${state.get('name')}.\n${state.get('address') !== '' ? `🏠 Dirección: ${state.get('address')}\n` : '🛍️ Para pasar a recoger'}\n💳 Método de pago: ${state.get('paymentMethod')}`
+      ,
       { media: null }
     )
 

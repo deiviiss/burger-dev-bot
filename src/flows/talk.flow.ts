@@ -116,9 +116,12 @@ ${history}
 const flowTalk = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic, state }) => {
     const history = getHistoryParse(state as BotState);
+    // console.log('========== FLOW TALK ==========');
+    // console.log('History in flowTalk:', history);
     await handleCurrentFlowState('TALK', state as BotState)
 
     const aiResponse = await getAIResponse(createPromptTalk(history));
+    // console.log('AI Response:', aiResponse);
 
     await handleHistory({ content: aiResponse, role: "assistant" }, state as BotState)
 
