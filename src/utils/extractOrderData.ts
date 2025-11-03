@@ -133,6 +133,26 @@ ${message}
 Respuesta (solo el tipo o "no-type"):
 `;
 
+// Prompt to extract the location from the message
+export const extractLocationPrompt = (message: string) => `
+Eres un asistente especializado en extraer la ubicación de pedidos de menú digital.
+
+El mensaje del usuario SÍ contiene información estructurada de ubicación en formato:
+"Ubicación: [Ubicación completa]"
+
+INSTRUCCIONES IMPORTANTES:
+- Busca específicamente el texto "Ubicación:" seguido de la ubicación
+- Extrae SOLO la ubicación completa (todo lo que viene después de "Ubicación: ")
+- Si encuentras la ubicación, responde únicamente con ella
+- Si NO encuentras el patrón "Ubicación:", responde exactamente "no-location"
+
+Mensaje del usuario:
+${message}
+
+Respuesta (solo la ubicación o "no-location"):
+`;
+
+// Function to extract order type
 export async function extractOrderType(message: string): Promise<string> {
   try {
     const orderType = await getAIResponse(extractOrderTypePrompt(message));
@@ -187,14 +207,26 @@ export async function extractPaymentMethod(message: string): Promise<string> {
   }
 }
 
+// Extract location from the message
+export async function extractLocation(message: string): Promise<string> {
+  try {
+    const location = await getAIResponse(extractLocationPrompt(message));
+    return location.trim().toLowerCase() === 'no-location' ? '' : location.trim();
+  } catch (error) {
+    console.error('Error extrayendo ubicación:', error);
+    return '';
+  }
+}
+
 // Function to extract all order data from the message
 export async function extractAllOrderData(message: string) {
-  const [verificationCode, customerName, deliveryAddress, paymentMethod, orderType] = await Promise.all([
+  const [verificationCode, customerName, deliveryAddress, paymentMethod, orderType, location] = await Promise.all([
     extractVerificationCode(message),
     extractCustomerName(message),
     extractDeliveryAddress(message),
     extractPaymentMethod(message),
-    extractOrderType(message)
+    extractOrderType(message),
+    extractLocation(message)
   ]);
 
   const needsAddress = orderType.toLowerCase().includes("domicilio");
@@ -202,7 +234,8 @@ export async function extractAllOrderData(message: string) {
     verificationCode &&
     customerName &&
     paymentMethod &&
-    (needsAddress ? deliveryAddress : true)
+    (needsAddress ? deliveryAddress : true) &&
+    (needsAddress ? location : true)
   );
 
   return {
@@ -211,6 +244,7 @@ export async function extractAllOrderData(message: string) {
     deliveryAddress,
     paymentMethod,
     orderType,
-    isComplete
+    isComplete,
+    location
   };
 }

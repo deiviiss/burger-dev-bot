@@ -7,9 +7,6 @@ import { createUpdateUser } from "@/actions/users/create-update-user";
 import { getUserByPhoneNumber } from "@/actions/users/get-user-by-phone-number";
 import { extractAllOrderData } from "@/utils/extractOrderData";
 import fs from "fs/promises";
-import path from "path";
-import os from "os";
-
 
 const confirmOrderPrompt = ({
   history,
@@ -57,9 +54,10 @@ Total: $90.00
 A nombre de: ${name}
 Domicilio de entrega: ${address}
 Forma de pago: ${paymentMethod}
-Tiempo de entrega: 35 minutos
 
 Por favor, revisa y confirma si todo está correcto o si deseas hacer algún cambio. 😊
+
+.... fin ejemplo
 
 Sé claro, amable y mantén un tono cercano, como si atendieras por WhatsApp.
 `
@@ -102,7 +100,7 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
     try {
       // Extract all data from the preformatted message
       const orderData = await extractAllOrderData(history)
-
+      console.log('orderData', orderData)
       if (!orderData.isComplete) {
         await flowDynamic(`No pudimos encontrar todos los datos necesarios en tu mensaje. Por favor, realiza tu pedido nuevamente desde el menú digital para incluir nombre, dirección y método de pago.`, { delay: 1000 })
         await flowDynamic(`https://burgerdev-demo.vercel.app 😊`, { delay: 1000 })
@@ -180,6 +178,7 @@ const flowConfirm = addKeyword(EVENTS.ACTION)
         address: orderData.deliveryAddress,
         paymentMethod: orderData.paymentMethod,
         orderType: orderData.orderType,
+        location: orderData.location
       })
 
       // Go directly to the final confirmation flow
@@ -344,7 +343,6 @@ https://burgerdev-demo.vercel.app 😊`);
       await flowDynamic('Dame un momento para validar la transferencia...', { delay: 2000 });
 
       try {
-        // const imageUrl = ctx.message.imageMessage.url;
 
         // Save the image in a temporary folder (according to the official doc)
         const localPath = await provider.saveFile(ctx, { path: "./tmp" });
@@ -411,7 +409,8 @@ https://burgerdev-demo.vercel.app 😊`);
         // Send message to the restaurant
         await provider.sendMessage(
           '+5219811250049',
-          `📦 Nuevo comprobante de ${state.get('name')}.\n` +
+          `📦 Nuevo comprobante\n` +
+          `Pedido ${state.get('order').shortId}\n` +
           `✅ Validado automáticamente por el sistema.`,
           {
             media: localPath
@@ -506,11 +505,16 @@ const flowOrderComplete = addKeyword(EVENTS.ACTION)
         delay: 1000
       })
 
+    const FINAL_CONFIRMATION = `📦 Pedido confirmado de ${state.get('name')}
+${state.get('address') !== '' ? `🏠 Dirección: ${state.get('address')}` : '🛍️ Para pasar a recoger'}
+${state.get('location') !== '' ? `📍 Ubicación: ${state.get('location')}` : ''}
+💳 Método de pago: ${state.get('paymentMethod')}
+`
+
     // Send message to the restaurant
     await provider.sendMessage(
       '+5219811250049',
-      `📦 Pedido confirmado de ${state.get('name')}.\n${state.get('address') !== '' ? `🏠 Dirección: ${state.get('address')}\n` : '🛍️ Para pasar a recoger'}\n💳 Método de pago: ${state.get('paymentMethod')}`
-      ,
+      FINAL_CONFIRMATION,
       { media: null }
     )
 
