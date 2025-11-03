@@ -40,7 +40,7 @@ Tu objetivo es:
 
 const flowOrder = addKeyword(EVENTS.ACTION)
   .addAction(async (_, { flowDynamic }) => {
-    await flowDynamic('Me encargaré de ayudarte a armar tu pedido. Pero en lo que me programan para hacer puedes checar el menú digital aquí: https://menu-digital-indol.vercel.app 🍔📱');
+    await flowDynamic('Me encargaré de ayudarte a armar tu pedido. Pero en lo que me programan para hacer puedes checar el menú digital aquí: https://burgerdev-demo.vercel.app 😊');
   })
   .addAction(async (_, { endFlow }) => {
     return endFlow();

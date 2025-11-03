@@ -7,18 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  USER
-}
-
-enum OrderStatus {
-  PENDING
-  IN_PROGRESS
-  DELIVERED
-  CANCELLED
-}
-
 model Category {
   id         String      @id @default(uuid())
   name       String
@@ -33,43 +21,41 @@ model Product {
   description String
   price       Float
   image       String
-  category    Category        @relation(fields: [categoryId], references: [id])
   categoryId  String
   isAvailable Boolean         @default(true)
-  options     ProductOption[] // Relation 1:N
   createdAt   DateTime        @default(now())
+  EventLog    EventLog[]
   orderItems  OrderItem[]
+  category    Category        @relation(fields: [categoryId], references: [id])
+  options     ProductOption[]
   branches    Branch[]        @relation("ProductBranches")
-}
-
-enum ProductOptionType {
-  size
-  ingredient
-  variable
-  note
 }
 
 model ProductOption {
   id          String            @id @default(uuid())
-  product     Product           @relation(fields: [productId], references: [id])
   productId   String
-  name        String // Ej: “Big”, “Strawberry”, etc.
-  price       Float // Specific price for this option
+  name        String
+  price       Float
   type        ProductOptionType
-  quantity    Int               @default(0) // Could be ignored
+  quantity    Int               @default(0)
   isAvailable Boolean           @default(true)
+  product     Product           @relation(fields: [productId], references: [id])
 }
 
 model Branch {
   id        String    @id @default(uuid())
   name      String
-  label     String    @unique // ej: 'sucursal-1', 'sucursal-campeche'
   address   String
-  phone     String // 📞 CURRENT number to which orders are sent (bot or user)
-  phoneBot  String? // 🤖 Bot number (saved for activation)
-  phoneUser String? // 👤 User number (saved for deactivation)
+  phone     String
   hours     String?
   isOpen    Boolean   @default(true)
+  phoneBot  String?
+  phoneUser String?
+  label     String    @unique
+  urlMap    String?
+  dayOff    String?
+  slogan    String?
+  social    Json?
   products  Product[] @relation("ProductBranches")
 }
 
@@ -82,10 +68,11 @@ model Promotion {
   promoPrice         Float
   image              String
   isActive           Boolean     @default(true)
-  category           Category    @relation(fields: [categoryId], references: [id])
   categoryId         String
   createdAt          DateTime    @default(now())
+  EventLog           EventLog[]
   orderItems         OrderItem[]
+  category           Category    @relation(fields: [categoryId], references: [id])
 }
 
 model User {
@@ -102,24 +89,56 @@ model User {
 model Order {
   id         String      @id @default(uuid())
   shortId    String      @unique
-  items      OrderItem[]
   totalPrice Float
   status     OrderStatus @default(PENDING)
   createdAt  DateTime    @default(now())
   address    String
   comment    String?
-  user       User?       @relation(fields: [userId], references: [id])
   userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  items      OrderItem[]
 }
 
 model OrderItem {
   id          String     @id @default(uuid())
-  order       Order      @relation(fields: [orderId], references: [id])
   orderId     String
-  product     Product?   @relation(fields: [productId], references: [id])
   productId   String?
-  promotion   Promotion? @relation(fields: [promotionId], references: [id])
   promotionId String?
   quantity    Int
   unitPrice   Float
+  order       Order      @relation(fields: [orderId], references: [id])
+  product     Product?   @relation(fields: [productId], references: [id])
+  promotion   Promotion? @relation(fields: [promotionId], references: [id])
+}
+
+model EventLog {
+  id          String     @id
+  type        String
+  createdAt   DateTime   @default(now())
+  metadata    Json?
+  productId   String?
+  promotionId String?
+  categoryId  String?
+  Product     Product?   @relation(fields: [productId], references: [id])
+  Promotion   Promotion? @relation(fields: [promotionId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  DELIVERED
+  CANCELLED
+}
+
+enum ProductOptionType {
+  size
+  ingredient
+  variable
+  note
+  limited_ingredient
 }
