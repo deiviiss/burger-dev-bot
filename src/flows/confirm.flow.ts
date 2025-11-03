@@ -507,7 +507,7 @@ const flowOrderComplete = addKeyword(EVENTS.ACTION)
 
     const FINAL_CONFIRMATION = `📦 Pedido confirmado de ${state.get('name')}
 ${state.get('address') !== '' ? `🏠 Dirección: ${state.get('address')}` : '🛍️ Para pasar a recoger'}
-${state.get('location') !== '' ? `📍 Ubicación: ${state.get('location')}` : ''}
+${state.get('location') !== '' ? `📍 Ubicación: ${state.get('location')}` : null}
 💳 Método de pago: ${state.get('paymentMethod')}
 `
 
