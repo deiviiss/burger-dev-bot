@@ -3,6 +3,18 @@ import { config } from "@/config"
 import { baileysProvider } from '@/provider'
 import flows from '@/flows'
 
+// 🧱 Global error handlers — prevent the process from closing without notice
+console.log('🚀 Iniciando el bot...')
+console.log('🧱 Global error handlers — prevent the process from closing without notice')
+process.on('uncaughtException', (err) => {
+  console.error('🧨 Uncaught Exception:', err.stack || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+});
+
+
 const main = async () => {
   const { handleCtx, httpServer } = await createBot({
     flow: flows,
