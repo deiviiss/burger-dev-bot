@@ -1,29 +1,25 @@
 import { config } from "../config"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: config.apiKey,
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+});
 
 export async function getAIResponse(prompt: string): Promise<string> {
   try {
-    const response = await fetch(`${config.url}${config.apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ]
-      })
-    })
-
-    const data = await response.json()
+    const response = await client.chat.completions.create({
+      model: "gemini-2.5-flash", // o gemini-2.5-pro si necesitas más precisión
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
 
     // Extract the response from the model
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Estoy teniendo problemas para responder a tu solicitud, por favor intenta de nuevo más tarde.'
+    return response.choices[0]?.message?.content || "Sin respuesta del modelo.";
   } catch (error) {
     console.error('Error al llamar a Gemini API:', error)
     return 'Hubo un problema al procesar tu solicitud.'
@@ -62,38 +58,27 @@ No inventes datos si no puedes leerlos con claridad.
 Si el texto está borroso o incompleto, marca los campos dudosos como false.
 `;
   try {
-    const response = await fetch(`${config.url}${config.apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: base64,
-                },
+    const response = await client.chat.completions.create({
+      model: "gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64}`,
               },
-            ],
-          },
-        ],
-      }),
+            },
+          ],
+        },
+      ],
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Error en Gemini API:", data);
-      return "error";
-    }
-
     const output =
-      data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() ||
-      "error";
+      response.choices[0]?.message?.content?.trim().toLowerCase() || "error";
+
 
     return output;
   } catch (error) {
